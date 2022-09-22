@@ -1,0 +1,250 @@
+<html>
+
+<head>
+<title>Available files</title>
+<style type="text/css">
+	body { font-family: helvetica; }
+	li { line-height: 1.5em;}
+	.up { 
+		list-style-type: none; 
+		font-size: 1.1em;
+		font-weight: bold;
+		margin-left: -1em;
+		margin-bottom: 1em;
+	}
+	.up a::before {
+		content: "\1403  "
+	}
+	.NavyHeader {}
+	.header1 {}
+	.shiftLeft {}
+	.container {}
+	.content {}
+	.dir { 
+		font-size: 1.1em;
+		font-weight: bold;
+	}
+	a.dirlink::after {
+		
+		content: "  \1405";
+		text-decoration: none;
+	}
+	.badge {
+		display: inline-block;
+		min-width: 10px;
+		padding: 3px 7px;
+		font-size: 12px;
+		font-weight: bold;
+		color: #fff;
+		line-height: 1;
+		vertical-align: middle;
+		white-space: nowrap;
+		text-align: center;
+		background-color: #a6a39b;
+		border-radius: 10px;
+	}
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js" integrity="sha512-aVKKRRi/Q/YV+4mjoKBsE4x3H+BkegoM/em46NNlCqNTmUYADjBbeNefNxYV7giUp0VxICtqdrbqU7iVaeZNXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+
+/* to do this we need to read the files in this case we need to add the main and sub folders to our project then use something like the following snippet to get that done. */
+
+// Example URLs
+// localhost:3333/js2.html?where=http://localhost:3333/docs&dir=docs&toplevel=docs
+// localhost:3333/js2.html?where=http://localhost:3333/docs/forms&dir=docs/forms&toplevel=docs
+// https://aqua.kingcounty.gov/aqua-al/js2.html?where=https://aqua.kingcounty.gov/aqua-al/documents/&dir=documents&toplevel=documents
+
+// TODO
+// Maybe pass URLs in script arg instead of URL
+
+var urlParam = function(name, w) {
+    w = w || window;
+    var rx = new RegExp('[\&|\?]' + name + '=([^\&\#]+)'),
+        val = w.location.search.match(rx);
+    return !val ? '' : val[1];
+}
+var dir = urlParam('dir');
+var toplevel = urlParam('toplevel');
+var urllocation = urlParam('where');
+var whereami = window.location.pathname;
+var fileextension = [".pdf", ".doc", ".docx", ".asp", ".gif", ".jpg", ".pptx", ".ppt", ".xlsx", ".xls", "/"];
+var textul = "";
+var upwhere = urllocation.slice(0, urllocation.lastIndexOf('/'));
+var updirurl = upwhere.substring(0, upwhere.lastIndexOf('/'));
+var updir = updirurl.slice(updirurl.lastIndexOf('/')).replace("/", "");
+
+function checkext() {
+    if (fileextension[mm] == "/") {
+        textul += "Directory";
+    } else {
+        textul += fileextension[mm]
+    }
+}
+
+function uplink() {
+
+    textul += "<li class='up'><a href='//" + window.location.host + whereami + "?where=" + updirurl + "/&dir=" + updir + "&toplevel=" + toplevel + "'>Up...</a></li>"
+}
+
+function writeurl(data, dirname) {
+    for (mm = 0; mm < fileextension.length; mm++) {
+        $(data).find('a:contains(' + fileextension[mm] +
+            ')').each(function(index,
+            value) {
+            // replace http with https when moved to https site! 
+            var filename = this.href.replace(window.location.host, "").replace("http:///", "");
+            // don't show file extension
+            let displayname = filename.slice(0, filename.lastIndexOf('.'));
+            //textul+="<li><a href=" + dir + "/"+ dirname  +filename+">"+filename+"</a> (";
+            //textul+="<li>"
+            if (filename.substr(-1) == '/') { // this is a directory
+                textul += "<li class='dir'><a class='dirlink' href='//" + window.location.host + whereami + "?where=" + urllocation + dirname + filename + "&toplevel=" + toplevel + "&dir=" + displayname + "'>"
+            } else {
+                textul += "<li class='content'><a class='contentlink' href=" + urllocation + dirname + filename + ">"
+            }
+            textul += displayname + "</a> <span class='badge'>";
+            checkext(mm)
+            textul += "</span></li>";
+
+        });
+    }
+}
+
+$(document).ready(function() {
+
+    // specify the base directory you want to search and type 
+    // of files you are searching
+
+    var x;
+
+    $.ajax({
+        //This will retrieve the contents of the folder if the 
+        //folder is configured as 'browsable'
+        url: urllocation,
+        type: 'Get',
+        async: false,
+        cache: false,
+        success: function(data) {
+            //List all file names in the page
+
+            if (data.indexOf(dir) > -1) {
+                //since we getting the files as links in the 
+                //result we will get the names by splitting 
+                //the result to an array
+                var direc = data.split("</a>");
+
+                //we can add the structure of the unordered 
+                //list
+
+                textul = "<h1>Contents of <em>" + dir + "</em> directory</h1>"
+                textul += "<ul>"
+                if (!whereami.includes(dir) && dir !== toplevel) {
+                    uplink();
+                }
+                // if using accordions for directories
+                //textul = "<ul class='ShiftLeft container' style='list-style-type:none'>";
+                
+                // we then loop through the array to get the directory name
+                direc.forEach(function(index, value) {
+                    if (value > 0) {
+                        var dirname = index.substr(index.indexOf('\"> '), index.indexOf('">')).replace('> ', '').replace('"', '').replace('\\', '');
+                        if (dirname != "") {
+							for (mm = 0; mm < fileextension.length; mm++) {
+
+                                if (dirname.includes(fileextension[mm])) {
+                                
+                                    // if using accordions for directories
+                                    //textul += "<li> <div class='NavyHeader header1'>" + dirname + " </div> <div class='content' style='display:none;'> <ul>";
+                                    
+                                    // don't show the file extension
+                                    let displayname = dirname.slice(0, dirname.lastIndexOf('.'));
+                                    
+                                    if (dirname.substr(-1) == '/') { // if it's a directory
+                                        textul += "<li class='dir'><a class='dirlink' href='//" + window.location.host + whereami + "?where=" + urllocation + dirname + "&toplevel=" + toplevel + "&dir=" + displayname + "'>"
+                                    } else { // if it's a link to a file
+                                        textul += "<li class='content'><a class='contentlink' href='" + urllocation + dirname + "'>"
+                                    }
+                                    // display the filetype in a badge
+                                    textul += displayname + "</a> <span class='badge'>";
+                                    checkext()
+                                    textul += "</span></li>";
+                                }
+                            }
+
+
+                            if (dirname.slice(-1) == "/") {
+                                textul += "<ul class='subdirectory'>";
+
+                                //dir.push(dirname);
+
+                                $.ajax({
+                                    //now we will loop through the 
+                                    //folders to get all the files in 
+                                    //them that match the extensions 
+                                    //we provided
+
+
+                                    url: urllocation + dirname,
+                                    type: 'Get',
+                                    async: false,
+                                    cache: false,
+                                    success: function(data) {
+                                        writeurl(data, dirname)
+                                    }
+                                });
+                            }
+                            textul += "</li>"
+                            if (dirname.slice(-1) == "/") {
+                                textul += "</ul>";
+                            }
+                        }
+
+                    }
+
+                });
+                //now we can add the unordered list text to 
+                //our div that will contain the list
+                $("#ResourcesDiv").append($(textul + " </ul>"));
+            }
+
+        },
+
+        error: function(xhr, ajaxOptions, thrownError) {
+            alert(xhr.status);
+            alert(thrownError);
+        }
+
+    });
+
+    // to do the collapsible effect we can add the following snippet to 
+    //document ready method
+    // we need to add the header1 class to the div we want to collapse 
+
+    $("div").on("click", "div.header1", function(e) {
+        // another jquery function to do this with could be  
+        //$(".content").collapse('toggle');
+        $header = $(this);
+        //getting the next element
+        $content = $header.next();
+        // without the stopPropagation() the click event will fire many 
+        //times
+        e.stopPropagation();
+        //open up the content needed - toggle the slide- if visible, slide 
+        //up, 
+        //if not slidedown.
+
+        $content.slideToggle(500, function() {
+            //execute this after slideToggle is done
+            //change text of header based on visibility of content div
+        });
+    });
+})
+
+</script>
+</head>
+<body>
+<div id="ResourcesDiv"></div>
+</body>
+</html>
